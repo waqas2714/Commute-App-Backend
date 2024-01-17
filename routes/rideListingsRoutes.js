@@ -12,6 +12,6 @@ router.post('/addRideRequest', addRideRequest);
 router.get('/myRideRequest/:driverId', myRideRequests);
 router.delete('/rejectRideRequest/:rideRequestId', rejectRideRequest);
 router.get('/acceptRideRequest/:rideRequestId', acceptRideRequest);
-router.get('/getRides/:long/:lat/:destLong/:destLat', getRides);
+router.get('/getRides/:lat/:long/:destLat/:destLong', getRides);
 
 module.exports = router;

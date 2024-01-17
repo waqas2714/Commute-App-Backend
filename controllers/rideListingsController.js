@@ -3,6 +3,29 @@ const RideListings = require("../models/rideListingsModel");
 const RideRequest = require("../models/RideRequests");
 const User = require("../models/userModel");
 
+
+//Calculate the distance between two coordinates
+function haversine(lat1, lon1, lat2, lon2) {
+  // Radius of the Earth in kilometers
+  const R = 6371.0;
+
+  // Convert latitude and longitude from degrees to radians
+  const [radLat1, radLon1, radLat2, radLon2] = [lat1, lon1, lat2, lon2].map((angle) => (angle * Math.PI) / 180);
+
+  // Calculate the differences between latitudes and longitudes
+  const dlat = radLat2 - radLat1;
+  const dlon = radLon2 - radLon1;
+
+  // Haversine formula
+  const a = Math.sin(dlat / 2) ** 2 + Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(dlon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  // Calculate the distance
+  const distance = R * c;
+
+  return distance;
+}
+
 const addListing = async (req, res) => {
   try {
     const {
@@ -224,45 +247,61 @@ const acceptRideRequest = async (req, res) => {
 };
 
 const getRides = async (req, res) => {
-    try {
-      const { long, lat, destLong, destLat } = req.params;
-  
-      // Convert the input strings to numbers
-      const userLong = parseFloat(long);
-      const userLat = parseFloat(lat);
-      const destUserLong = parseFloat(destLong);
-      const destUserLat = parseFloat(destLat);
-  
-      // Define a distance threshold (adjust as needed)
-      const maxDistance = 20000; // in meters
-  
-      // Query for RideListings that are within the given distance from the user's location
-      const nearbyRideListings = await RideListings.find({
-        'pickupPoint': {
-          $geoWithin: {
-            $centerSphere: [[userLong, userLat], maxDistance / 6371000], // 6371000 is Earth's radius in meters
-          },
-        },
-        'destination': {
-          $geoWithin: {
-            $centerSphere: [[destUserLong, destUserLat], maxDistance / 6371000],
-          },
-        },
+  try {
+    const { long, lat, destLong, destLat } = req.params;
+
+    const userLong = parseFloat(long);
+    const userLat = parseFloat(lat);
+    const destUserLong = parseFloat(destLong);
+    const destUserLat = parseFloat(destLat);
+
+    let listings = await RideListings.find();
+
+    listings = await Promise.all(listings.map(async (listing) => {
+      const driverInfo = await User.findById(listing.driverId);
+      const {username, image, phone, carDetails:{name, model, number, color}} = driverInfo;
+
+      return {
+        ...listing._doc,
+        driverName : username,
+        image,
+        phone,
+        carName: name,
+        model,
+        number, 
+        color
+      };
+    }));
+
+    const myRides = listings
+      .map((listing) => {
+        const listingDepLat = parseFloat(listing.latdep);
+        const listingDepLong = parseFloat(listing.longdep);
+        const listingDestLat = parseFloat(listing.latdest);
+        const listingDestLong = parseFloat(listing.longdest);
+
+        const userDepartureDistance = haversine(userLat, userLong, listingDepLat, listingDepLong);
+        const userDestinationDistance = haversine(destUserLat, destUserLong, listingDestLat, listingDestLong);
+
+        if (userDepartureDistance > 5 || userDestinationDistance > 5) {
+          return null;
+        }
+
+        return {
+          ...listing,
+          distance: userDepartureDistance + userDestinationDistance,
+        };
       })
-        .sort({
-          'pickupPoint.long': 1,
-          'pickupPoint.lat': 1,
-          'destination.long': 1,
-          'destination.lat': 1,
-        })
-        .exec();
-  
-      res.json({ nearbyRideListings });
-    } catch (error) {
-      res.json({ error: error.message });
-    }
-  };
-    
+      .filter((ride) => ride !== null);
+
+    myRides.sort((a, b) => a.distance - b.distance);
+
+    res.json(myRides);
+  } catch (error) {
+    res.json({ error: error.message });
+  }
+};
+
 
 module.exports = {
   addListing,
