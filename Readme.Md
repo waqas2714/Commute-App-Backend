@@ -17,7 +17,7 @@ Messaging System:
 •	Include a messaging system for users to communicate with each other to coordinate pickup points, drop-off locations, and other details. 
 Rating and Review System: 
 •	Implement a rating and review system for both drivers and passengers to build trust and ensure a reliable carpooling experience. 
-Notification System: 
+Notification System: (Not doing for now)
 •	Send automatic reminders for upcoming rides, ride requests, and confirmations. 
 
 
@@ -42,7 +42,7 @@ Messaging Pages:
 •	Individual Chat Page (for messaging between users) 
 Rating and Review Pages: 
 •	Leave a Review Page (for users to leave feedback after a ride) *Can be a modal too
-Notification Pages: 
+Notification Pages: (Not implementing for now)
 •	Notification Center Page (listing all notifications) 
 Real-Time Location Tracking Page: 
 •	Map Page (displaying real-time location tracking during a ride) 
