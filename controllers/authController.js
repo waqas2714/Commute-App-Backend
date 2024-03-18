@@ -5,33 +5,43 @@ const bcrypt = require("bcrypt");
 const { transporter } = require("../utils/mailer");
 const User = require("../models/userModel");
 
-const generateToken = async (payload)=>{
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
-    return token;
-}
+const generateToken = async (payload) => {
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "24h" });
+  return token;
+};
 
 const signup = async (req, res) => {
   try {
     upload.single("image")(req, res, async (err) => {
-      const { email, username, password, carDetails, school, phone } = req.body;
+      try {
+        const { email, username, password, carDetails, school, phone } = req.body;
       let mailOptions;
+      
+      const isDriverBool = req.body.isDriver === "true" ? true : false;
 
-      if (
-        !email ||
-        !username ||
-        !password ||
-        !carDetails ||
-        !school ||
-        !phone
-      ) {
-        throw new Error("Please fill in all the fields.");
+      console.log("Driver Bool : " + isDriverBool);
+
+      if (!email || !username || !password || !school || !phone) {
+        throw new Error("Please provide all the fields.");
+      }
+
+      if (isDriverBool && !carDetails) {
+        throw new Error("Please provide all the fields.");
+      }
+
+      const existingUser = await User.findOne({
+        email: req.body.email,
+        isDriver: isDriverBool,
+      });
+  
+      if (existingUser) {
+        throw new Error(`A ${isDriverBool ? "driver": "passenger" } with this email address already exists.`);
       }
 
       const image = req.file;
       let hashedPassword = await bcrypt.hash(password, 10);
 
-      let isDriver = req.body.isDriver === "true"; // Convert to boolean
-      if (isDriver) {
+      if (isDriverBool) {
         const actualCarDetails = JSON.parse(carDetails);
 
         console.log(actualCarDetails);
@@ -45,6 +55,7 @@ const signup = async (req, res) => {
             password: hashedPassword,
             image: "testImage",
             carDetails: actualCarDetails,
+            isDriver: isDriverBool
           },
           process.env.JWT_SECRET
         );
@@ -78,6 +89,7 @@ const signup = async (req, res) => {
             school,
             phone,
             image: "test image",
+            cms: req.body.cms
           },
           process.env.JWT_SECRET
         );
@@ -101,8 +113,11 @@ const signup = async (req, res) => {
           }
         });
       }
-
-      res.status(200).json({ message: "Email Sent!" });
+      res.status(200).json({ success: true, message: "Email Sent!" });
+      } catch (error) {
+        res.json({ success:false, error: error.message });
+      }
+      
     });
   } catch (error) {
     res.json({ error: error.message });
@@ -113,7 +128,6 @@ const verifyAccount = async (req, res) => {
   try {
     const { token } = req.params;
     const user = jwt.verify(token, process.env.JWT_SECRET);
-
     if (user) {
       const newUser = await User.create(user);
 
@@ -128,32 +142,32 @@ const verifyAccount = async (req, res) => {
   }
 };
 
-const login = async (req, res)=>{
-    try {
-        const {email} = req.body;
+const login = async (req, res) => {
+  try {
+    const { email, isDriver } = req.body;
 
-        const user = await User.findOne({email});
+    const user = await User.findOne({ email, isDriver });
 
-        if (!user) {
-            throw new Error("No user registered with this email.");
-        }
-
-        const isCorrect = await bcrypt.compare(req.body.password, user.password)
-
-        if (!isCorrect) {
-            throw new Error("One of the fields is wrong. Please try again.");
-        }
-
-        const {password, ...userWithoutPassword} = user;
-        const token = await generateToken(userWithoutPassword._doc);
-        res.json({user : userWithoutPassword._doc, token});
-    } catch (error) {
-        res.json({ error: error.message });
+    if (!user) {
+      throw new Error(`No ${isDriver ? "driver" : "passenger"} registered with this email.`);
     }
-}
+
+    const isCorrect = await bcrypt.compare(req.body.password, user.password);
+
+    if (!isCorrect) {
+      throw new Error("One of the fields is wrong. Please try again.");
+    }
+
+    const { password, ...userWithoutPassword } = user;
+    const token = await generateToken(userWithoutPassword._doc);
+    res.json({ user: userWithoutPassword._doc, token, success: true });
+  } catch (error) {
+    res.json({ success : false, error: error.message });
+  }
+};
 
 module.exports = {
   signup,
   verifyAccount,
-  login
+  login,
 };
