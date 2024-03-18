@@ -29,7 +29,7 @@ const userSchema = mongoose.Schema({
     required: [true, "Email is Required."],
     trim: true,
     match: [
-      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/,
+      /^[a-zA-Z]+\.[a-zA-Z0-9]+(\d{2})[a-zA-Z]+@([a-zA-Z]+)\.edu\.pk$/,
       "Please provide a valid Email.",
     ],
   },
@@ -49,7 +49,7 @@ const userSchema = mongoose.Schema({
   phone: {
     type: String,
     required: [true, "Please add a phone number."],
-    match: [/^\+92[0-9]{10}$/, "Please enter a valid phone number."],
+    match: [/^03\d{9}$/, "Please enter a valid phone number."],
   },
   isDriver: {
     type: Boolean,
@@ -67,6 +67,8 @@ const userSchema = mongoose.Schema({
     default: null,
   },
 });
+
+userSchema.index({ email: 1, isDriver: 1 }, { unique: true });
 
 const User = mongoose.model("User", userSchema);
 
