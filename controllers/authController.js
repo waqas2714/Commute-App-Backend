@@ -140,8 +140,66 @@ const login = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new Error("No user registered with this email.");
+    }
+
+    const { password, ...userWithoutPassword } = user;
+
+    const token = await generateToken(userWithoutPassword);
+
+    const mailOptions = {
+      from: process.env.USER_EMAIL,
+      to: email, // Email address you want to send the email to
+      subject: "Account Validation",
+      html: `
+  <p>Reset your Password by clicking on the link: </p>
+  <a href='${process.env.FRONTEND_URL}/resetPassword/${token}' >Reset!</a>
+  <p>Regards</p><br /><h2>NUSTWheelz</h2>`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error(error);
+        res.json({ success: false, error: error.message });
+      }
+    });
+
+    res.json({ success: true, token });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+};
+
+const resetPassword = async (req, res)=>{
+  try {
+    const {token, password} = req.body;
+    const payload = jwt.decode(token);
+    const user = await User.findById(payload._doc._id);
+    if (!user) {
+      throw new Error("There was something wrong, please try again.");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+
+    await user.save();
+
+    res.json({success:true, message: "Password changed successfully. Log in with new password."})
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+}
+
 module.exports = {
   signup,
   verifyAccount,
   login,
+  forgotPassword,
+  resetPassword,
 };
