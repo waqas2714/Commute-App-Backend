@@ -20,115 +20,72 @@ const generateToken = async (payload) => {
 
 const signup = async (req, res) => {
   try {
-    const { email, username, password, carDetails, school, phone, image } =
+    const { email, username, password, school, isDriver, phone, image } =
       req.body;
     let mailOptions;
 
-    const isDriverBool = req.body.isDriver === "true" ? true : false;
+    const isDriverBool = false;
 
-          if (!email || !username || !password || !school || !phone) {
-            throw new Error("Please provide all the fields.");
-          }
+    if (!email || !username || !password || !school || !phone) {
+      throw new Error("Please provide all the fields.");
+    }
 
-          if (isDriverBool && !carDetails) {
-            throw new Error("Please provide all the fields.");
-          }
+    const existingUser = await User.findOne({
+      email: req.body.email,
+      isDriver: isDriverBool,
+    });
 
-          const existingUser = await User.findOne({
-            email: req.body.email,
-            isDriver: isDriverBool,
-          });
-
-          if (existingUser) {
-            throw new Error(
-              `A ${
-                isDriverBool ? "driver" : "passenger"
-              } with this email address already exists.`
-            );
-          }
+    if (existingUser) {
+      throw new Error(
+        `A ${
+          isDriverBool ? "driver" : "passenger"
+        } with this email address already exists.`
+      );
+    }
 
     cloudinary.uploader.upload(
       image,
-      { folder: 'nustWheelz' },
+      { folder: "nustWheelz" },
       async function (cloudError, uploadedImage) {
         try {
           if (cloudError) {
-            return res.json({error:cloudError, success: false});
+            return res.json({ error: cloudError, success: false });
           }
-          
 
           let hashedPassword = await bcrypt.hash(password, 10);
 
-          if (isDriverBool) {
-            const actualCarDetails = JSON.parse(carDetails);
+          const token = jwt.sign(
+            {
+              email,
+              username,
+              password: hashedPassword,
+              isDriver: false,
+              carDetails: null,
+              school,
+              phone,
+              image: uploadedImage.url,
+              cms: req.body.cms,
+            },
+            process.env.JWT_SECRET
+          );
 
-            console.log(actualCarDetails);
-            if (!carDetails) {
-              throw new Error("Please provide car details");
-            }
-
-            const token = jwt.sign(
-              {
-                ...req.body,
-                password: hashedPassword,
-                image: uploadedImage.url,
-                carDetails: actualCarDetails,
-                isDriver: isDriverBool,
-              },
-              process.env.JWT_SECRET
-            );
-
-            mailOptions = {
-              from: process.env.USER_EMAIL,
-              to: email, // Email address you want to send the email to
-              subject: "Account Validation",
-              html: `<h3>Dear ${username},</h3>
-            <p>Verify your account by clicking on the link: </p>
-            <a href='http://localhost:5000/api/auth/verifyAccount/${token}' >Verify!</a>
-            <p>Best regards,</p>`,
-            };
-
-            transporter.sendMail(mailOptions, (error, info) => {
-              if (error) {
-                console.error(error);
-                res.json({ error: error.message });
-              } else {
-                console.log("Email sent: " + info.response);
-              }
-            });
-          } else {
-            const token = jwt.sign(
-              {
-                email,
-                username,
-                password: hashedPassword,
-                isDriver: false,
-                carDetails: null,
-                school,
-                phone,
-                image:uploadedImage.url,
-                cms: req.body.cms,
-              },
-              process.env.JWT_SECRET
-            );
-
-            mailOptions = {
-              from: process.env.USER_EMAIL,
-              to: email, // Email address you want to send the email to
-              subject: "Account Validation",
-              html: `<h3>Dear ${username},</h3>
+          mailOptions = {
+            from: process.env.USER_EMAIL,
+            to: email, // Email address you want to send the email to
+            subject: "Account Validation",
+            html: `<h3>Dear ${username},</h3>
         <p>Verify your account by clicking on the link: </p>
         <a href='http://localhost:5000/api/auth/verifyAccount/${token}' >Verify!</a>
         <p>Best regards,</p>`,
-            };
+          };
 
-            transporter.sendMail(mailOptions, (error, info) => {
-              if (error) {
-                console.error(error);
-                res.json({ error: error.message });
-              }
-            });
-          }
+          transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+              console.error(error);
+              res.json({ error: error.message });
+            }
+          });
+
           res.status(200).json({ success: true, message: "Email Sent!" });
         } catch (error) {
           res.json({ success: false, error: error.message });
@@ -161,14 +118,12 @@ const verifyAccount = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, isDriver } = req.body;
+    const { email } = req.body;
 
-    const user = await User.findOne({ email, isDriver });
+    const user = await User.findOne({ email });
 
     if (!user) {
-      throw new Error(
-        `No ${isDriver ? "driver" : "passenger"} registered with this email.`
-      );
+      throw new Error("No user exists with this email.");
     }
 
     const isCorrect = await bcrypt.compare(req.body.password, user.password);
