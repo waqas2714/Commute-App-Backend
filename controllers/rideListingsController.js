@@ -256,11 +256,11 @@ const getRides = async (req, res) => {
     const destUserLat = parseFloat(destLat);
 
     let listings = await RideListings.find();
-
+    
     listings = await Promise.all(listings.map(async (listing) => {
       const driverInfo = await User.findById(listing.driverId);
       const {username, image, phone, carDetails:{name, model, number, color}} = driverInfo;
-
+      
       return {
         ...listing._doc,
         driverName : username,
@@ -287,14 +287,28 @@ const getRides = async (req, res) => {
           return null;
         }
 
+        const {_id, time, date, seatsAvailable, driverName, carName, passengers, image, departure, destination} = listing;
+
         return {
-          ...listing,
-          distance: userDepartureDistance + userDestinationDistance,
+          departure,
+          destination,
+          _id,
+          time,
+          date,
+          driverName,
+          carName,
+          seatsAvailable,
+          image,
+          passengers,
+          
+          distance: userDepartureDistance + userDestinationDistance
         };
       })
       .filter((ride) => ride !== null);
 
     myRides.sort((a, b) => a.distance - b.distance);
+
+    console.log(myRides);
 
     res.json(myRides);
   } catch (error) {
