@@ -196,10 +196,40 @@ const resetPassword = async (req, res)=>{
   }
 }
 
+const registerDriver = async (req, res)=>{
+  try {
+    const {name, model, number, color, id} = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      throw new Error("Something went wrong. Please try again.");
+    }
+
+    user.isDriver = true;
+    user.carDetails = {
+      name,
+      model,
+      number,
+      color
+    };
+
+    await user.save();
+    
+    const { password, ...userWithoutPassword } = user;
+
+    res.json({success : true, user : userWithoutPassword._doc});
+
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+}
+
 module.exports = {
   signup,
   verifyAccount,
   login,
   forgotPassword,
   resetPassword,
+  registerDriver
 };
