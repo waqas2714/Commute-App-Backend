@@ -81,10 +81,10 @@ const removeListing = async (req, res) => {
 
 const addPassenger = async (req, res) => {
   try {
-    const { listingId, name, photo, phone, userId } = req.body;
+    const { listingId, name, photo, school, userId } = req.body;
 
     const listing = await RideListings.findById(listingId);
-    listing.passengers.push({ name, photo, phone, userId });
+    listing.passengers.push({ name, photo, school, userId });
 
     await listing.save();
 
@@ -130,6 +130,9 @@ const addRideRequest = async (req, res) => {
     // const { listingId, userId } = req.body;
 
     const request = await RideRequest.create(req.body);
+    if (!request) {
+      throw new Error("The request could not be added, please try again.");
+    }
     // const user = await User.findById(userId);
     // const listing = await RideListings.findById(listingId);
 
@@ -146,9 +149,9 @@ const addRideRequest = async (req, res) => {
     //   time,
     //   date,
     // });
-    res.json(request);
+    res.json({success : true});
   } catch (error) {
-    res.json({ error: error.message });
+    res.json({ success : false, error: error.message });
   }
 };
 
@@ -299,7 +302,7 @@ const getRides = async (req, res) => {
           carName,
           seatsAvailable,
           image,
-          passengers,
+          passengers: passengers.length,
           
           distance: userDepartureDistance + userDestinationDistance
         };
@@ -308,11 +311,133 @@ const getRides = async (req, res) => {
 
     myRides.sort((a, b) => a.distance - b.distance);
 
-    console.log(myRides);
-
     res.json(myRides);
   } catch (error) {
-    res.json({ error: error.message });
+    res.json({ success : false, error: error.message });
+  }
+};
+
+
+// const getListing = async (req, res)=>{
+//   try {
+//     const {id} = req.params;
+//     const listing = await RideListings.findById(id);
+//     if (!listing) {
+//       throw new Error("Listing detail was not found. It might be removed. Please try again.");
+//     }
+//     res.json({success : true, listing})
+//   } catch (error) {
+//     res.json({ success : false, error: error.message });
+//   }
+// }
+
+const getListing = async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+
+    const listing = await RideListings.findById(id).populate('driverId', 'username image school carDetails');
+    const rideRequest = await RideRequest.find({listingId : id, userId});
+    if (!listing) {
+      throw new Error("Listing detail was not found. It might be removed. Please try again.");
+    }
+    
+    const { username, image, school, carDetails } = listing.driverId;
+
+    const simplifiedListing = {
+      success: true,
+      listing: {
+        ...listing.toObject(),
+        driverId: { username, image, school, carDetails }
+      }
+    };
+
+    let isRequested;
+
+    if (rideRequest.length > 0) {
+      isRequested = true;  
+    } else {
+      isRequested = false;
+    }
+
+    res.json({listing : simplifiedListing, isRequested});
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+};
+
+const passengerRideRequests = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Find all ride requests for the given user and populate the associated ride listings
+    const rideRequests = await RideRequest.find({ userId }).populate({
+      path: 'listingId',
+      populate: {
+        path: 'driverId',
+        select: 'username image school carDetails'
+      }
+    });
+
+    // Check if any ride requests were found
+    if (rideRequests.length === 0) {
+      return res.json({ success: true, rideRequests });
+    }
+
+    // Modify the response for each ride request
+    const modifiedRideRequests = rideRequests.map(request => {
+      const { listingId, userId } = request;
+      const { image, driverId, date, time, passengers, seatsAvailable } = listingId;
+      return {
+        image: driverId.image,
+        driverName: driverId.username,
+        driverCarName: driverId.carDetails.name,
+        date,
+        time,
+        passengers: passengers.length,
+        seatsAvailable,
+        listingId: listingId._id
+      };
+    });
+
+    
+    res.json({ success: true, rideRequests: modifiedRideRequests });
+  } catch (error) {
+    // Handle errors
+    res.json({ success: false, error: error.message });
+  }
+};
+
+const getScheduledRidesPassenger = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Find all ride listings where the user's ID is present in the passengers array
+    const rideListings = await RideListings.find({ 'passengers.userId': userId }).populate('driverId', 'username image carDetails');
+
+    // Check if any ride listings were found
+    if (rideListings.length === 0) {
+      return res.json({ success: true, rideListings });
+    }
+
+    // Modify the response for each ride listing
+    const modifiedRideListings = rideListings.map(listing => {
+      const { _id, driverId, date, time, passengers, seatsAvailable } = listing;
+      return {
+        driverImage: driverId.image,
+        driverName: driverId.username,
+        carName: driverId.carDetails.name,
+        date,
+        passengers: passengers.length,
+        time,
+        seatsAvailable,
+        listingId: _id
+      };
+    });
+
+    // Send the modified ride listings as a response
+    res.json({ success: true, rideListings: modifiedRideListings });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
   }
 };
 
@@ -327,5 +452,8 @@ module.exports = {
   myRideRequests,
   rejectRideRequest,
   acceptRideRequest,
-  getRides
+  getRides,
+  getListing,
+  passengerRideRequests,
+  getScheduledRidesPassenger
 };

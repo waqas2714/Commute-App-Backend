@@ -1,4 +1,4 @@
-const { addListing, removeListing, addPassenger, removePassenger, myListings, addRideRequest, myRideRequests, rejectRideRequest, acceptRideRequest, getRides } = require('../controllers/rideListingsController');
+const { addListing, removeListing, addPassenger, removePassenger, myListings, addRideRequest, myRideRequests, rejectRideRequest, acceptRideRequest, getRides, getListing, passengerRideRequests, getScheduledRidesPassenger } = require('../controllers/rideListingsController');
 
 
 const router = require('express').Router();
@@ -13,5 +13,9 @@ router.get('/myRideRequest/:driverId', myRideRequests);
 router.delete('/rejectRideRequest/:rideRequestId', rejectRideRequest);
 router.get('/acceptRideRequest/:rideRequestId', acceptRideRequest);
 router.get('/getRides/:lat/:long/:destLat/:destLong', getRides);
+router.get('/getListing/:id/:userId', getListing);
+router.get('/passengerRideRequests/:userId', passengerRideRequests);
+router.get('/getScheduledRidesPassenger/:userId', getScheduledRidesPassenger);
+
 
 module.exports = router;

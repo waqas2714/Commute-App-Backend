@@ -41,7 +41,7 @@ const rideListingsSchema = mongoose.Schema({
     {
       name: String,
       photo: String,
-      phone: String,
+      school: String,
       userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
