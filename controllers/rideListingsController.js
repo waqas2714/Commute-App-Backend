@@ -60,9 +60,9 @@ const addListing = async (req, res) => {
 
     const listing = await RideListings.create(req.body);
 
-    res.json({ success: true });
+    res.json({ success: true , listingId : listing._id});
   } catch (error) {
-    res.json({ error: error.message });
+    res.json({ success : false, error: error.message });
   }
 };
 
@@ -73,9 +73,11 @@ const removeListing = async (req, res) => {
     await RideRequest.deleteMany({ listingId });
     const removedListing = await RideListings.findByIdAndDelete(listingId);
 
-    res.json(removedListing);
+    console.log(removedListing);
+
+    res.json({success : true, removedListing : removedListing._id});
   } catch (error) {
-    res.json({ error: error.message });
+    res.json({ success : false, error: error.message });
   }
 };
 
@@ -88,11 +90,15 @@ const addPassenger = async (req, res) => {
 
     await listing.save();
 
+    
+    await RideRequest.deleteOne({ userId, listingId });
+
     res.json(listing);
   } catch (error) {
     res.json({ error: error.message });
   }
 };
+
 
 const removePassenger = async (req, res) => {
   try {
@@ -119,9 +125,18 @@ const myListings = async (req, res) => {
     const { driverId } = req.params;
     const listings = await RideListings.find({ driverId });
 
-    res.json(listings);
+    // Transforming the array of listings to include only required fields
+    const simplifiedListings = listings.map(listing => ({
+      departure: listing.departure,
+      destination: listing.destination,
+      date: listing.date,
+      time: listing.time,
+      _id: listing._id
+    }));
+
+    res.json({ success: true, listings: simplifiedListings });
   } catch (error) {
-    res.json({ error: error.message });
+    res.json({ success: false, error: error.message });
   }
 };
 
@@ -162,10 +177,6 @@ const myRideRequests = async (req, res) => {
     // Find all RideListings with the given driverId
     const rideListings = await RideListings.find({ driverId });
 
-    if (rideListings.length === 0) {
-      return res.json(rideListings);
-    }
-
     // Fetch RideRequests for each RideListing
     const rideRequestsDetails = [];
 
@@ -188,8 +199,7 @@ const myRideRequests = async (req, res) => {
           date: rideListing.date,
           username: user.username,
           school: user.school,
-          phone: user.phone,
-          image: user.image,
+          image: user.image
         };
 
         // Add the combined details to the response array
@@ -198,10 +208,9 @@ const myRideRequests = async (req, res) => {
     }
 
     // Return the response as an array
-    return res.json(rideRequestsDetails);
+    return res.json({success : true, rideRequests : rideRequestsDetails});
   } catch (error) {
-    console.error(error);
-    return res.json({ error: error.message });
+    return res.json({ success : false, error: error.message });
   }
 };
 
@@ -209,8 +218,7 @@ const rejectRideRequest = async (req, res) => {
   try {
     const { rideRequestId } = req.params;
     const deleted = await RideRequest.findByIdAndDelete(rideRequestId);
-
-    res.json(deleted);
+    res.json({success : true, deleted : deleted._id});
   } catch (error) {
     res.json({ error: error.message });
   }
@@ -231,21 +239,22 @@ const acceptRideRequest = async (req, res) => {
       throw new Error("User associated to the userId not found.");
     }
     if (!(listing.seatsAvailable > listing.passengers.length)) {
-      throw new Error("Full capacity reached.");
+      throw new Error("Full capacity reached for this listing.");
     }
 
     listing.passengers.push({
       name: user.username,
       photo: user.image,
-      phone: user.phone,
-      userId: listing.userId,
+      school: user.school,
+      userId: user._id
     });
 
+    await listing.save();
     await RideRequest.findByIdAndDelete(rideRequestId);
 
-    res.json(listing.passengers);
+    res.json({success : true});
   } catch (error) {
-    res.json({ error: error.message });
+    res.json({ success : false, error: error.message });
   }
 };
 
@@ -335,19 +344,19 @@ const getListing = async (req, res) => {
   try {
     const { id, userId } = req.params;
 
-    const listing = await RideListings.findById(id).populate('driverId', 'username image school carDetails');
+    const listing = await RideListings.findById(id).populate('driverId', 'username image school carDetails phone');
     const rideRequest = await RideRequest.find({listingId : id, userId});
     if (!listing) {
       throw new Error("Listing detail was not found. It might be removed. Please try again.");
     }
     
-    const { username, image, school, carDetails } = listing.driverId;
+    const { username, image, school, carDetails, _id, phone } = listing.driverId;
 
     const simplifiedListing = {
       success: true,
       listing: {
         ...listing.toObject(),
-        driverId: { username, image, school, carDetails }
+        driverId: { username, image, school, carDetails, _id, phone }
       }
     };
 

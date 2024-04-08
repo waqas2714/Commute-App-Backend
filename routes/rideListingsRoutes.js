@@ -9,7 +9,7 @@ router.delete('/removePassenger/:listingId/:passengerId', removePassenger);
 router.post('/addPassenger', addPassenger);
 router.get('/myListings/:driverId', myListings);
 router.post('/addRideRequest', addRideRequest);
-router.get('/myRideRequest/:driverId', myRideRequests);
+router.get('/myRideRequests/:driverId', myRideRequests);
 router.delete('/rejectRideRequest/:rideRequestId', rejectRideRequest);
 router.get('/acceptRideRequest/:rideRequestId', acceptRideRequest);
 router.get('/getRides/:lat/:long/:destLat/:destLong', getRides);
