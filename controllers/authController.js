@@ -6,6 +6,7 @@ const cloudinary = require("cloudinary").v2;
 const sharp = require("sharp");
 const { transporter } = require("../utils/mailer");
 const User = require("../models/userModel");
+const RideListings = require("../models/rideListingsModel");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
@@ -175,9 +176,9 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-const resetPassword = async (req, res)=>{
+const resetPassword = async (req, res) => {
   try {
-    const {token, password} = req.body;
+    const { token, password } = req.body;
     const payload = jwt.decode(token);
     const user = await User.findById(payload._doc._id);
     if (!user) {
@@ -190,15 +191,18 @@ const resetPassword = async (req, res)=>{
 
     await user.save();
 
-    res.json({success:true, message: "Password changed successfully. Log in with new password."})
+    res.json({
+      success: true,
+      message: "Password changed successfully. Log in with new password.",
+    });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
-}
+};
 
-const registerDriver = async (req, res)=>{
+const registerDriver = async (req, res) => {
   try {
-    const {name, model, number, color, id} = req.body;
+    const { name, model, number, color, id } = req.body;
 
     const user = await User.findById(id);
 
@@ -211,19 +215,44 @@ const registerDriver = async (req, res)=>{
       name,
       model,
       number,
-      color
+      color,
     };
 
     await user.save();
-    
+
     const { password, ...userWithoutPassword } = user;
 
-    res.json({success : true, user : userWithoutPassword._doc});
-
+    res.json({ success: true, user: userWithoutPassword._doc });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
-}
+};
+
+const driverInfo = async (req, res) => {
+  try {
+    const { driverId, userId } = req.params;
+    let isPassenger = false;
+
+    const driver = await User.findOne({_id : driverId, isDriver : true});
+    if (!driver) {
+      throw new Error(`Driver not found.`);
+    }
+
+    const listings = await RideListings.find({ driverId });
+    if (listings.length > 0) {
+      isPassenger = listings.some(listing =>
+        listing.passengers.some(passenger => passenger.userId == userId)
+      );
+    }
+
+    const driverWithoutPassword = { ...driver._doc };
+    delete driverWithoutPassword.password;
+
+    res.json({ success: true, isPassenger, driver: driverWithoutPassword });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+};
 
 module.exports = {
   signup,
@@ -231,5 +260,6 @@ module.exports = {
   login,
   forgotPassword,
   resetPassword,
-  registerDriver
+  registerDriver,
+  driverInfo,
 };
