@@ -1,9 +1,10 @@
-const { addListing, removeListing, addPassenger, removePassenger, myListings, addRideRequest, myRideRequests, rejectRideRequest, acceptRideRequest, getRides, getListing, passengerRideRequests, getScheduledRidesPassenger } = require('../controllers/rideListingsController');
+const { addListing, removeListing, addPassenger, removePassenger, myListings, addRideRequest, myRideRequests, rejectRideRequest, acceptRideRequest, getRides, getListing, passengerRideRequests, getScheduledRidesPassenger, updateListing } = require('../controllers/rideListingsController');
 
 
 const router = require('express').Router();
 
 router.post('/addListing', addListing);
+router.put('/updateListing/:listingId', updateListing);
 router.delete('/removeListing/:listingId', removeListing);
 router.delete('/removePassenger/:listingId/:passengerId', removePassenger);
 router.post('/addPassenger', addPassenger);
