@@ -66,14 +66,34 @@ const addListing = async (req, res) => {
   }
 };
 
+const updateListing = async (req, res)=>{
+  try {
+    const {departure, destination, date, time, seatsAvailable} = req.body;
+    const {listingId} = req.params;
+    const listing = await RideListings.findById(listingId);
+    if (!listing) {
+      throw new Error("Listing not found. Please try again later.");
+    }
+    listing.departure = departure;
+    listing.destination = destination;
+    listing.time = time;
+    listing.date = date;
+    listing.seatsAvailable = seatsAvailable;
+
+    await listing.save();
+
+    res.json({success : true});
+  } catch (error) {
+    res.json({ success : false, error: error.message });
+  }
+}
+
 const removeListing = async (req, res) => {
   try {
     const { listingId } = req.params;
 
     await RideRequest.deleteMany({ listingId });
     const removedListing = await RideListings.findByIdAndDelete(listingId);
-
-    console.log(removedListing);
 
     res.json({success : true, removedListing : removedListing._id});
   } catch (error) {
@@ -112,11 +132,11 @@ const removePassenger = async (req, res) => {
     );
 
     // Save the updated listing
-    const updatedListing = await listing.save();
+    await listing.save();
 
-    res.json(updatedListing);
+    res.json({success : true});
   } catch (error) {
-    res.json({ error: error.message });
+    res.json({ success : false, error: error.message });
   }
 };
 
@@ -464,5 +484,6 @@ module.exports = {
   getRides,
   getListing,
   passengerRideRequests,
-  getScheduledRidesPassenger
+  getScheduledRidesPassenger,
+  updateListing
 };
