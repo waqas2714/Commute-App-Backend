@@ -2,16 +2,16 @@ const mongoose = require("mongoose");
 
 const reviewSchema = mongoose.Schema(
   {
-    stars: {
-      type: Number,
-      required: [true, "Please provide stars."],
-    },
     comment: {
       type: String,
     },
-    reviewerName: {
+    departure: {
       type: String,
-      required: [true, "Please provide reviewer name."],
+      required: [true, "Please provide departure name."]
+    },
+    destination: {
+      type: String,
+      required: [true, "Please provide destination name."]
     },
     for: {
       type: mongoose.Schema.Types.ObjectId,
@@ -21,6 +21,10 @@ const reviewSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    isReviewGiven: {
+      type: Boolean,
+      default: false
+    }
   },
   {
     timestamps: true,

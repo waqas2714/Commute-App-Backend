@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose");
 const RideListings = require("../models/rideListingsModel");
 const RideRequest = require("../models/RideRequests");
 const User = require("../models/userModel");
+const Reviews = require("../models/Reviews");
 
 
 //Calculate the distance between two coordinates
@@ -100,6 +101,51 @@ const removeListing = async (req, res) => {
     res.json({ success : false, error: error.message });
   }
 };
+
+const finishRide = async (req, res)=>{
+  try {
+    const { listingId } = req.params;
+
+    // Retrieve the listing to be removed
+    const removedListing = await RideListings.findById(listingId);
+
+    // Array to hold promises for adding reviews
+    const addReviewPromises = removedListing.passengers.map(async (passenger) => {
+      // Fetch passenger details from the User model
+      const passengerDetails = await User.findById(passenger.userId);
+
+      // Create a new review with passenger's name as reviewerName
+      const newReview = new Reviews({
+        stars: 0, // You may adjust this based on your requirements
+        comment: "No review given",
+        reviewerName: passengerDetails.username, // Use passenger's username as reviewerName
+        for: removedListing.driverId, // Passenger's user ID
+        from: passenger.userId, // Driver's user ID
+        isReviewGiven: false, // Marking the review as not given
+        departure : removedListing.departure,
+        destination : removedListing.destination
+      });
+
+      // Save the new review to the database
+      return newReview.save();
+    });
+
+    // Wait for all reviews to be added
+    await Promise.all(addReviewPromises);
+
+    // Delete ride requests associated with the listing
+    await RideRequest.deleteMany({ listingId });
+
+    // Delete the listing itself
+    await RideListings.findByIdAndDelete(listingId);
+
+    res.json({ success: true
+      // , removedListing: removedListing._id 
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+}
 
 const addPassenger = async (req, res) => {
   try {
@@ -485,5 +531,6 @@ module.exports = {
   getListing,
   passengerRideRequests,
   getScheduledRidesPassenger,
-  updateListing
+  updateListing,
+  finishRide
 };
