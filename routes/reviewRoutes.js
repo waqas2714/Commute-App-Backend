@@ -1,10 +1,11 @@
-const { addReview, deleteReview, getReviews } = require('../controllers/reviewController');
+const { addReview, deleteReview, getReviewsDriver, getReviewsUser } = require('../controllers/reviewController');
 
 
 const router = require('express').Router();
 
-router.post('/addReview', addReview);
-router.get('/getReviews/:userId', getReviews);
+router.post('/addReview/:reviewId', addReview);
+router.get('/getReviewsDriver/:userId', getReviewsDriver);
+router.get('/getReviewsUser/:userId', getReviewsUser);
 router.delete('/deleteReview/:reviewId', deleteReview);
 
 
