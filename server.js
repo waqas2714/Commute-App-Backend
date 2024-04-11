@@ -9,6 +9,7 @@ const rideListingsRoutes = require('./routes/rideListingsRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const User = require('./models/userModel');
+const { initializeSocketIo } = require('./utils/socketIo');
 const cloudinary = require("cloudinary").v2;
 
 
@@ -36,6 +37,9 @@ app.use('/api/rideListings', rideListingsRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
 
+//Remove ridelistings if date has passed(Add unGiven reviews of that listing after deeting the listing )
+//Remove Reviews if not given under 24hours
+//Remove Cloudinary Images
 app.get('/removeCloudinaryImages', async (req, res)=>{
   try {
     const users = await User.find({}, 'image');
@@ -74,19 +78,4 @@ mongoose
   });
 
 
-  // global.onlineUsers = new Map();
-  io.on("connection", (socket) => {
-    global.chatSocket = socket;
-    // socket.on("add-user", (userId) => {
-    //   onlineUsers.set(userId, socket.id);
-    // });
-  
-    socket.on("send-msg", (data) => {
-      // const sendUserSocket = onlineUsers.get(data.to);
-      // if (sendUserSocket) {
-        socket
-        .broadcast.emit("msg-recieve", data.msg);
-        // .to(sendUserSocket)
-      // }
-    });
-  });
+initializeSocketIo(io);
