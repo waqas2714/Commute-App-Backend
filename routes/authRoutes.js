@@ -6,6 +6,7 @@ const {
   resetPassword,
   registerDriver,
   driverInfo,
+  verifyToken,
 } = require("../controllers/authController");
 const multer = require("multer");
 const verifyUser = require("../middlewares/verifyUser");
@@ -21,5 +22,6 @@ router.post("/forgotPassword", forgotPassword);
 router.post("/resetPassword", resetPassword);
 router.get("/verifyAccount/:token", verifyAccount);
 router.get("/driverInfo/:driverId/:userId", driverInfo);
+router.get("/verifyToken", verifyToken);
 
 module.exports = router;

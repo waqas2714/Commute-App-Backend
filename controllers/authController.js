@@ -254,6 +254,21 @@ const driverInfo = async (req, res) => {
   }
 };
 
+const verifyToken = (req, res) => {
+  const token = req.headers.authorization.split(" ")[1]; // Extract token from header
+
+  // Verify the token
+  jwt.verify(token, process.env.JWT_SECRET, (err, decodedToken) => {
+    if (err) {
+      // If token is invalid or expired, send false
+      res.json(false);
+    } else {
+      // If token is valid, send true
+      res.json(true);
+    }
+  });
+}
+
 module.exports = {
   signup,
   verifyAccount,
@@ -262,4 +277,5 @@ module.exports = {
   resetPassword,
   registerDriver,
   driverInfo,
+  verifyToken
 };
