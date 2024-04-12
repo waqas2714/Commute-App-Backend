@@ -1,22 +1,16 @@
-// global.onlineUsers = new Map();
-const initializeSocketIo = (io)=>{
+const initializeSocketIo = (io) => {
   io.on("connection", (socket) => {
-    global.chatSocket = socket;
-    // socket.on("add-user", (userId) => {
-    //   onlineUsers.set(userId, socket.id);
-    // });
-  
+    socket.on("join-room", (listingId) => {
+      socket.join(listingId); 
+    });
+
     socket.on("send-msg", (data) => {
-      // const sendUserSocket = onlineUsers.get(data.to);
-      // if (sendUserSocket) {
-        socket
-        .broadcast.emit("msg-recieve", data.msg);
-        // .to(sendUserSocket)
-      // }
+      // Broadcast the message to all users in the room except the sender
+      socket.broadcast.to(data.listingId).emit("msg-recieve", data);
     });
   });
-}
+};
 
 module.exports = {
-    initializeSocketIo
-}
+  initializeSocketIo,
+};
