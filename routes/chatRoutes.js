@@ -1,9 +1,10 @@
-const { addChat, removeChat, getChat } = require('../controllers/chatController');
+const { addChat, removeChat, getAllChats, getChat } = require('../controllers/chatController');
 
 const router = require('express').Router();
 
-router.post('/', addChat);
-router.get('/:from/:to', getChat);
+router.post('/addChat/:listingId/:userId', addChat);
+router.get('/getAllChats/:userId', getAllChats);
+router.get('/getChat/:listingId', getChat);
 router.delete('/:chatId', removeChat);
 
 

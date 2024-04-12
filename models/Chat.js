@@ -1,25 +1,25 @@
-const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
-const chatSchema = mongoose.Schema(
-  {
-    message: {
-      type: String,
-      required: [true, "Please provide message."],
+  const chatSchema = mongoose.Schema(
+    {
+      message: {
+        type: String,
+        required: [true, "Please provide message."],
+      },
+      listingId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "RideListings",
+      },
+      from: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
     },
-    to: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    from: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
+    {
+      timestamps: true,
+    }
+  );
 
-const Chat = mongoose.model("Chat", chatSchema);
+  const Chat = mongoose.model("Chat", chatSchema);
 
-module.exports = Chat;
+  module.exports = Chat;
