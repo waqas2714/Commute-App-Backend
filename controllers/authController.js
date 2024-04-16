@@ -3,7 +3,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const cloudinary = require("cloudinary").v2;
-const sharp = require("sharp");
 const { transporter } = require("../utils/mailer");
 const User = require("../models/userModel");
 const RideListings = require("../models/rideListingsModel");
