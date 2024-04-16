@@ -37,6 +37,11 @@ app.use('/api/rideListings', rideListingsRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
 
+
+app.get('/', (req, res)=>{
+  res.send("HELLO WORLD!!");
+})
+
 //Remove ridelistings if date has passed(Add unGiven reviews of that listing after deeting the listing )
 //Remove Reviews if not given under 24hours
 //Remove Cloudinary Images
