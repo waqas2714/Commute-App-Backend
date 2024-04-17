@@ -82,7 +82,7 @@ const signup = async (req, res) => {
           transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
               console.error(error);
-              return res.json({ success: false, error: error.message }); // Terminating execution here
+              return res.json({ success: false, error: "There was some problm with sending the verification email. Please try again later." }); // Terminating execution here
             }
             res.status(200).json({ success: true, message: "Email Sent!" });
           });
@@ -165,7 +165,7 @@ const forgotPassword = async (req, res) => {
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.error(error);
-        res.json({ success: false, error: error.message });
+        return res.json({ success: false, error: "Something went wrong with sending the email. Please try again later." });
       }
     });
 
