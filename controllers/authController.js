@@ -82,11 +82,10 @@ const signup = async (req, res) => {
           transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
               console.error(error);
-              res.json({ error: error.message });
+              return res.json({ success: false, error: error.message }); // Terminating execution here
             }
+            res.status(200).json({ success: true, message: "Email Sent!" });
           });
-
-          res.status(200).json({ success: true, message: "Email Sent!" });
         } catch (error) {
           res.json({ success: false, error: error.message });
           console.log(error.message);
@@ -98,6 +97,7 @@ const signup = async (req, res) => {
     console.log(error.message);
   }
 };
+
 
 const verifyAccount = async (req, res) => {
   try {
