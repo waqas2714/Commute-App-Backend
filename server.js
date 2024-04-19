@@ -8,9 +8,11 @@ const authRoutes = require('./routes/authRoutes');
 const rideListingsRoutes = require('./routes/rideListingsRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const cronjobsRoutes = require('./routes/cronjobs');
 const User = require('./models/userModel');
 const { initializeSocketIo } = require('./utils/socketIo');
 const cloudinary = require("cloudinary").v2;
+const path = require('path');
 
 
 const app = express();
@@ -31,42 +33,18 @@ cloudinary.config({
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/rideListings', rideListingsRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/cron', cronjobsRoutes);
 
 app.get("/", (req, res)=>{
   res.send("I am alive :)");
 })
 
-//Remove ridelistings if date has passed(Add unGiven reviews of that listing after deeting the listing )
-//Remove Reviews if not given under 24hours
-//Remove Cloudinary Images
-app.get('/removeCloudinaryImages', async (req, res)=>{
-  try {
-    const users = await User.find({}, 'image');
-    const cloudinaryIds = users.map(user => {
-      if (user.image) {
-        const cloudinaryId = cloudinary.url(user.image, { type: 'fetch' }).split('/').slice(-1)[0].split('.')[0];
-        return "nustWheelz/" + cloudinaryId;
-      }
-    }).filter(Boolean);
-
-    // Modify the prefix to include the folder path
-    const cloudinaryImages = await cloudinary.api.resources({ type: 'upload', max_results: 500, prefix: 'nustWheelz/' });
-
-    const imagesToDelete = cloudinaryImages.resources.filter(image => !cloudinaryIds.includes(image.public_id));
-    for (const image of imagesToDelete) {
-      await cloudinary.uploader.destroy(image.public_id);
-      console.log(`Deleted image with public ID: ${image.public_id}`);
-    }
-    res.json({ success: true, message: "Images in 'nustWheelz' folder deleted successfully" });
-  } catch (error) {
-    res.json({error: error.message, success: false})
-  }
-})
 
 const PORT = process.env.PORT || 5000;
 mongoose
