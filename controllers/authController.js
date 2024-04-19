@@ -1,11 +1,10 @@
-const multer = require("multer");
-const upload = multer({ storage: multer.memoryStorage() });
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const cloudinary = require("cloudinary").v2;
 const { transporter } = require("../utils/mailer");
 const User = require("../models/userModel");
 const RideListings = require("../models/rideListingsModel");
+const path = require('path');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
@@ -31,8 +30,7 @@ const signup = async (req, res) => {
     }
 
     const existingUser = await User.findOne({
-      email: req.body.email,
-      isDriver: isDriverBool,
+      email
     });
 
     if (existingUser) {
@@ -75,7 +73,7 @@ const signup = async (req, res) => {
             subject: "Account Validation",
             html: `<h3>Dear ${username},</h3>
         <p>Verify your account by clicking on the link: </p>
-        <a href='http://localhost:5000/api/auth/verifyAccount/${token}' >Verify!</a>
+        <a href='${process.env.BACKEND_URL}/api/auth/verifyAccount/${token}' >Verify!</a>
         <p>Best regards,</p>`,
           };
 
@@ -106,15 +104,17 @@ const verifyAccount = async (req, res) => {
     if (user) {
       const newUser = await User.create(user);
       if (newUser) {
-        return res.json(newUser);
+        // Send the static HTML page
+        return res.sendFile(path.join(__dirname, '../public/accountCreated/index.html'));
       } else {
-        throw new Error("User not created...");
+        return res.sendFile(path.join(__dirname, '../public/accountNotCreated/index.html'));
       }
     }
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500);
   }
 };
+
 
 const login = async (req, res) => {
   try {
@@ -155,7 +155,7 @@ const forgotPassword = async (req, res) => {
     const mailOptions = {
       from: process.env.USER_EMAIL,
       to: email, // Email address you want to send the email to
-      subject: "Account Validation",
+      subject: "Reset Password",
       html: `
   <p>Reset your Password by clicking on the link: </p>
   <a href='${process.env.FRONTEND_URL}/resetPassword/${token}' >Reset!</a>
