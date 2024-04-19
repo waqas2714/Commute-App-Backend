@@ -93,16 +93,69 @@ const removeListing = async (req, res) => {
   try {
     const { listingId } = req.params;
 
+    // Delete associated ride requests
     await RideRequest.deleteMany({ listingId });
+
+    // Delete associated chats
+    await Chat.deleteMany({ listingId });
+
+    // Remove the listing itself
     const removedListing = await RideListings.findByIdAndDelete(listingId);
 
-    res.json({success : true, removedListing : removedListing._id});
+    res.json({ success: true, removedListing: removedListing._id });
   } catch (error) {
-    res.json({ success : false, error: error.message });
+    res.json({ success: false, error: error.message });
   }
 };
 
-const finishRide = async (req, res)=>{
+
+// const finishRide = async (req, res) => {
+//   try {
+//     const { listingId } = req.params;
+
+//     // Retrieve the listing to be removed
+//     const removedListing = await RideListings.findById(listingId);
+
+//     // Array to hold promises for adding reviews
+//     const addReviewPromises = removedListing.passengers.map(async (passenger) => {
+//       // Fetch passenger details from the User model
+//       const passengerDetails = await User.findById(passenger.userId);
+
+//       // Create a new review with passenger's name as reviewerName
+//       const newReview = new Reviews({
+//         stars: 0, // You may adjust this based on your requirements
+//         comment: "No review given",
+//         reviewerName: passengerDetails.username, // Use passenger's username as reviewerName
+//         for: removedListing.driverId, // Passenger's user ID
+//         from: passenger.userId, // Driver's user ID
+//         isReviewGiven: false, // Marking the review as not given
+//         departure: removedListing.departure,
+//         destination: removedListing.destination
+//       });
+
+//       // Save the new review to the database
+//       return newReview.save();
+//     });
+
+//     // Wait for all reviews to be added
+//     await Promise.all(addReviewPromises);
+
+//     // Delete ride requests associated with the listing
+//     await RideRequest.deleteMany({ listingId });
+
+//     // Delete chats associated with the listing
+//     await Chat.deleteMany({ listingId });
+
+//     // Delete the listing itself
+//     await RideListings.findByIdAndDelete(listingId);
+
+//     res.json({ success: true });
+//   } catch (error) {
+//     res.json({ success: false, error: error.message });
+//   }
+// };
+
+const finishRide = async (req, res) => {
   try {
     const { listingId } = req.params;
 
@@ -122,30 +175,32 @@ const finishRide = async (req, res)=>{
         for: removedListing.driverId, // Passenger's user ID
         from: passenger.userId, // Driver's user ID
         isReviewGiven: false, // Marking the review as not given
-        departure : removedListing.departure,
-        destination : removedListing.destination
+        departure: removedListing.departure,
+        destination: removedListing.destination
       });
 
       // Save the new review to the database
       return newReview.save();
     });
 
-    // Wait for all reviews to be added
-    await Promise.all(addReviewPromises);
+    // Array to hold promises for deletion of ride requests and chats
+    const deletePromises = [
+      RideRequest.deleteMany({ listingId }),
+      Chat.deleteMany({ listingId })
+    ];
 
-    // Delete ride requests associated with the listing
-    await RideRequest.deleteMany({ listingId });
+    // Wait for all reviews to be added and for deletion of ride requests and chats
+    await Promise.all([...addReviewPromises, ...deletePromises]);
 
     // Delete the listing itself
     await RideListings.findByIdAndDelete(listingId);
 
-    res.json({ success: true
-      // , removedListing: removedListing._id 
-    });
+    res.json({ success: true });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
-}
+};
+
 
 const addPassenger = async (req, res) => {
   try {
@@ -208,28 +263,13 @@ const myListings = async (req, res) => {
 
 const addRideRequest = async (req, res) => {
   try {
-    // const { listingId, userId } = req.body;
-
+    
     const request = await RideRequest.create(req.body);
     if (!request) {
       throw new Error("The request could not be added, please try again.");
     }
-    // const user = await User.findById(userId);
-    // const listing = await RideListings.findById(listingId);
 
-    // const { username, school, phone, image } = user;
-    // const { departure, destination, time, date } = listing;
-
-    // res.json({
-    //   username,
-    //   school,
-    //   phone,
-    //   image,
-    //   departure,
-    //   destination,
-    //   time,
-    //   date,
-    // });
+    
     res.json({success : true});
   } catch (error) {
     res.json({ success : false, error: error.message });
@@ -243,21 +283,20 @@ const myRideRequests = async (req, res) => {
     // Find all RideListings with the given driverId
     const rideListings = await RideListings.find({ driverId });
 
-    // Fetch RideRequests for each RideListing
-    const rideRequestsDetails = [];
-
-    for (const rideListing of rideListings) {
+    // Array to hold promises for fetching RideRequests for each RideListing
+    const rideRequestsPromises = rideListings.map(async (rideListing) => {
       // Find all RideRequests with the listingId of the current RideListing
       const rideRequests = await RideRequest.find({
         listingId: rideListing._id,
       });
 
-      for (const rideRequest of rideRequests) {
+      // Fetch user details for each RideRequest concurrently
+      const rideRequestsDetails = Promise.all(rideRequests.map(async (rideRequest) => {
         // Get user details for each RideRequest
         const user = await User.findById(rideRequest.userId);
 
         // Create an object with combined details
-        const combinedDetails = {
+        return {
           _id: rideRequest._id,
           departure: rideListing.departure,
           destination: rideListing.destination,
@@ -267,18 +306,24 @@ const myRideRequests = async (req, res) => {
           school: user.school,
           image: user.image
         };
+      }));
 
-        // Add the combined details to the response array
-        rideRequestsDetails.push(combinedDetails);
-      }
-    }
+      return rideRequestsDetails;
+    });
 
-    // Return the response as an array
-    return res.json({success : true, rideRequests : rideRequestsDetails});
+    // Wait for all promises to resolve
+    const rideRequestsDetails = await Promise.all(rideRequestsPromises);
+
+    // Flatten the array of arrays into a single array
+    const flattenedRideRequestsDetails = rideRequestsDetails.flat();
+
+    // Return the response
+    return res.json({ success: true, rideRequests: flattenedRideRequestsDetails });
   } catch (error) {
-    return res.json({ success : false, error: error.message });
+    return res.json({ success: false, error: error.message });
   }
 };
+
 
 const rejectRideRequest = async (req, res) => {
   try {
@@ -361,7 +406,7 @@ const getRides = async (req, res) => {
         const userDepartureDistance = haversine(userLat, userLong, listingDepLat, listingDepLong);
         const userDestinationDistance = haversine(destUserLat, destUserLong, listingDestLat, listingDestLong);
 
-        if (userDepartureDistance > 5 || userDestinationDistance > 5) {
+        if (userDepartureDistance > 1 || userDestinationDistance > 1) {
           return null;
         }
 
@@ -392,19 +437,6 @@ const getRides = async (req, res) => {
   }
 };
 
-
-// const getListing = async (req, res)=>{
-//   try {
-//     const {id} = req.params;
-//     const listing = await RideListings.findById(id);
-//     if (!listing) {
-//       throw new Error("Listing detail was not found. It might be removed. Please try again.");
-//     }
-//     res.json({success : true, listing})
-//   } catch (error) {
-//     res.json({ success : false, error: error.message });
-//   }
-// }
 
 const getListing = async (req, res) => {
   try {
