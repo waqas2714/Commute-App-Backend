@@ -8,8 +8,8 @@ const {
   driverInfo,
   verifyToken,
 } = require("../controllers/authController");
-const multer = require("multer");
 const verifyUser = require("../middlewares/verifyUser");
+const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
