@@ -61,3 +61,5 @@ mongoose
 
 
 initializeSocketIo(io);
+
+module.exports = {app, server};
