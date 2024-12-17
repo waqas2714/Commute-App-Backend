@@ -46,18 +46,15 @@ describe("Auth Controller - Signup", () => {
     jest.clearAllMocks();
     // Set up necessary environment variables
     process.env.JWT_SECRET = 'test-secret';
-    process.env.BACKEND_URL = 'http://localhost:3000';
+    process.env.BACKEND_URL = 'http://localhost:5001';
     process.env.USER_EMAIL = 'test@example.com';
-  });
-  afterAll((done) => {
-    server.close(done); // Properly close the server after tests
-  });
+  }); 
 
   it("should create user and send verification email", async () => {
     // Mock User.findOne to return null (no existing user)
     mockingoose(User).toReturn(null, "findOne");
 
-    const response = await request(server).post("/api/auth/signup").send({
+    const response = await request(app).post("/api/auth/signup").send({
       email: "newuser@example.com",
       username: "newuser",
       password: "password123",
@@ -83,19 +80,19 @@ describe("Auth Controller - Signup", () => {
   });
 
   it("should return error if required fields are missing", async () => {
-    const response = await request(server).post("/api/auth/signup").send({
+    const response = await request(app).post("/api/auth/signup").send({
       email: "test@example.com",
     });
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
-    expect(response.body.error).toBe("Please provide all the fields.");
+    expect(response.body.message).toBe("Please provide all the fields.");
   });
 
   it("should return error if email already exists", async () => {
     mockingoose(User).toReturn({ email: "test@example.com" }, "findOne");
 
-    const response = await request(server).post("/api/auth/signup").send({
+    const response = await request(app).post("/api/auth/signup").send({
       email: "test@example.com",
       username: "testuser",
       password: "password123",
@@ -106,7 +103,7 @@ describe("Auth Controller - Signup", () => {
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
-    expect(response.body.error).toBe(
+    expect(response.body.message).toBe(
       "A passenger with this email address already exists."
     );
   });
@@ -120,14 +117,14 @@ describe("Auth Controller - Login", () => {
   it("should return error if user does not exist", async () => {
     mockingoose(User).toReturn(null, "findOne");
 
-    const response = await request(server).post("/api/auth/login").send({
+    const response = await request(app).post("/api/auth/login").send({
       email: "notfound@example.com",
       password: "password123",
     });
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
-    expect(response.body.error).toBe("No user exists with this email.");
+    expect(response.body.message).toBe("No user exists with this email.");
   });
 
   it("should return error if password is incorrect", async () => {
@@ -143,14 +140,14 @@ describe("Auth Controller - Login", () => {
     // Mock bcrypt compare to return false (incorrect password)
     bcrypt.compare.mockResolvedValue(false);
 
-    const response = await request(server).post("/api/auth/login").send({
+    const response = await request(app).post("/api/auth/login").send({
       email: "test@example.com",
       password: "wrongpassword",
     });
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
-    expect(response.body.error).toBe(
+    expect(response.body.message).toBe(
       "One of the fields is wrong. Please try again."
     );
   });
@@ -171,7 +168,7 @@ describe("Auth Controller - Login", () => {
     // Mock jwt sign to return a token
     jwt.sign.mockReturnValue("sample.jwt.token");
 
-    const response = await request(server).post("/api/auth/login").send({
+    const response = await request(app).post("/api/auth/login").send({
       email: "test@example.com",
       password: "password123",
     });

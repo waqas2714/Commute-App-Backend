@@ -26,7 +26,8 @@ const signup = async (req, res) => {
     const isDriverBool = false;
 
     if (!email || !username || !password || !school || !phone) {
-      throw new Error("Please provide all the fields.");
+     return res.status(400).json({ success: false, message: "Please provide all the fields." });
+      // throw new Error("Please provide all the fields.");
     }
 
     const existingUser = await User.findOne({
@@ -34,6 +35,7 @@ const signup = async (req, res) => {
     });
 
     if (existingUser) {
+      return res.status(400).json({ success: false, message: "A passenger with this email address already exists." });
       throw new Error(
         `A ${
           isDriverBool ? "driver" : "passenger"
@@ -123,12 +125,16 @@ const login = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
+      return res.status(400).json({ success: false, message: "No user exists with this email." });
+
       throw new Error("No user exists with this email.");
     }
 
     const isCorrect = await bcrypt.compare(req.body.password, user.password);
 
     if (!isCorrect) {
+      return res.status(400).json({ success: false, message: "One of the fields is wrong. Please try again." });
+
       throw new Error("One of the fields is wrong. Please try again.");
     }
 
