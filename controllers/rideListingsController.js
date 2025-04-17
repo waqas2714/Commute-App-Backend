@@ -3,6 +3,7 @@ const RideListings = require("../models/rideListingsModel");
 const RideRequest = require("../models/RideRequests");
 const User = require("../models/userModel");
 const Reviews = require("../models/Reviews");
+const Chat = require("../models/Chat");
 
 
 //Calculate the distance between two coordinates
